@@ -118,3 +118,57 @@ Future<Map<String, dynamic>?> getExample(String jwt) async {
 ---
 
 For more details, see `CONFIG_API.md` and `README.md` in the project root.
+
+## Token Expiry & Refresh Flow
+
+### How tokens are stored
+
+- **Access token (JWT):** Short-lived, used in `Authorization: Bearer <JWT>` header for all protected API calls.
+- **Refresh token:** Longer-lived, usually stored securely (e.g. in HTTP-only cookie, localStorage, or secure client storage).
+
+### How to refresh the token
+
+1. When an API call returns `401 Unauthorized` (access token expired), client should call:
+
+   - `POST /api/auth/refresh`
+
+2. Send the **refresh token** (usually in request body or header, depending on your implementation).
+
+   Example (if refresh token is sent in JSON body):
+
+   ```bash
+   curl -X POST "http://localhost:8080/api/auth/refresh" \
+     -H "X-API-Token: <API_TOKEN>" \
+     -H "Content-Type: application/json" \
+     -d '{ "refresh_token": "<your_refresh_token>" }'
+   ```
+
+3. If valid, server responds with a new access token (and possibly a new refresh token).
+
+   Example response:
+
+   ```json
+   {
+     "access_token": "<new_jwt>",
+     "refresh_token": "<new_refresh_token>"
+   }
+   ```
+
+4. Client updates stored tokens and retries the original request.
+
+5. If refresh fails (refresh token expired, revoked, or invalid), user must log in again.
+
+### Best practices
+
+- Store refresh token securely (never expose to JavaScript if possible).
+- Access token is sent in `Authorization` header for all `/api/v1/*` requests.
+- Refresh token is only used for `/api/auth/refresh`.
+- Always check for `401 Unauthorized` and handle refresh automatically in your client.
+
+### When does user need to login again?
+- If refresh token is expired, revoked, or invalid.
+- If refresh endpoint returns `401` or `400`, prompt user to log in again.
+
+---
+
+> For more details, see your `/api/auth/refresh` endpoint implementation and client storage strategy.
