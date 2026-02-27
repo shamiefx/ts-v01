@@ -65,15 +65,6 @@ function getProfileImageUrl(profile_image: string | null) {
   return `/uploads/${profile_image.replace(/^\//, "")}`;
 }
 
-// Small icon helpers (no extra libs)
-function Icon({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return (
-    <span className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border bg-white ${className}`}>
-      {children}
-    </span>
-  );
-}
-
 export default function ProfilePage() {
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [localPreview, setLocalPreview] = useState<string | null>(null);
