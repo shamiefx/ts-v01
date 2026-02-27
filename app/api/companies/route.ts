@@ -6,6 +6,7 @@ export async function GET(request: NextRequest) {
     const cookieStore = await cookies();
     const token = cookieStore.get("auth_token")?.value || 
                   request.headers.get("authorization")?.replace("Bearer ", "");
+    const apiToken = process.env.API_TOKEN;
 
     if (!token) {
       return NextResponse.json(
@@ -13,91 +14,70 @@ export async function GET(request: NextRequest) {
         { status: 401 }
       );
     }
-
-    const apiBaseUrl = process.env.API_BASE_URL || "http://localhost:8080";
-    const response = await fetch(`${apiBaseUrl}/api/v1/companies`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      console.error("Backend API error:", response.status, response.statusText);
-      // Return mock data for development
-      return NextResponse.json({
-        data: getMockCompanies(),
-      });
+    if (!apiToken) {
+      return NextResponse.json(
+        { error: "Server misconfigured: API_TOKEN is missing" },
+        { status: 500 }
+      );
     }
 
-    const data = await response.json();
-    return NextResponse.json(data);
+    const apiBaseUrl = process.env.API_BASE_URL || "http://localhost:8080";
+    const upstreamUrl = `${apiBaseUrl}/api/v1/companies`;
+    const apiTokenValue: string = apiToken;
+
+    let upstream: Response;
+    try {
+      upstream = await fetch(upstreamUrl, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+          "X-API-Token": apiTokenValue,
+        },
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Upstream request failed";
+      return NextResponse.json(
+        {
+          error: "Failed to reach backend companies service",
+          details: message,
+          upstream: upstreamUrl,
+        },
+        { status: 502 }
+      );
+    }
+
+    const text = await upstream.text();
+
+    if (!upstream.ok) {
+      const t = text.trim();
+      const empty = t.length === 0 || t === '""';
+      if (empty) {
+        return NextResponse.json(
+          {
+            error: "Upstream companies request failed with empty response body",
+            upstreamStatus: upstream.status,
+            upstreamStatusText: upstream.statusText,
+            upstream: upstreamUrl,
+          },
+          { status: upstream.status }
+        );
+      }
+    }
+
+    return new NextResponse(text, {
+      status: upstream.status,
+      headers: {
+        "Content-Type": upstream.headers.get("content-type") || "application/json",
+      },
+    });
   } catch (error) {
     console.error("Error in /api/companies:", error);
-    // Return mock data for development
-    return NextResponse.json({
-      data: getMockCompanies(),
-    });
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return NextResponse.json(
+      { error: "Internal error in /api/companies", details: message },
+      { status: 500 }
+    );
   }
-}
-
-interface Company {
-  id: string;
-  name: string;
-  code: string;
-  phone: string;
-  email: string;
-  created: string;
-  status: "active" | "inactive" | "suspended";
-}
-
-function getMockCompanies(): Company[] {
-  return [
-    {
-      id: "1",
-      name: "TechCorp Solutions",
-      code: "TC-001",
-      phone: "(555) 123-4567",
-      email: "contact@techcorp.com",
-      created: "2024-01-15T10:30:00Z",
-      status: "active",
-    },
-    {
-      id: "2",
-      name: "Digital Innovations Inc",
-      code: "DII-002",
-      phone: "(555) 234-5678",
-      email: "info@diginnovate.com",
-      created: "2024-02-20T14:15:00Z",
-      status: "active",
-    },
-    {
-      id: "3",
-      name: "CloudAI Systems",
-      code: "CAS-003",
-      phone: "(555) 345-6789",
-      email: "support@cloudai.io",
-      created: "2024-03-10T09:45:00Z",
-      status: "active",
-    },
-    {
-      id: "4",
-      name: "DataFlow Analytics",
-      code: "DFA-004",
-      phone: "(555) 456-7890",
-      email: "hello@dataflow.co",
-      created: "2024-01-05T11:20:00Z",
-      status: "inactive",
-    },
-    {
-      id: "5",
-      name: "Security Nexus Ltd",
-      code: "SNL-005",
-      phone: "(555) 567-8901",
-      email: "contact@secnexus.com",
-      created: "2023-11-30T16:00:00Z",
-      status: "suspended",
-    },
-  ];
 }

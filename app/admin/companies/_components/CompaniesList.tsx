@@ -10,7 +10,17 @@ export interface Company {
   phone: string;
   email: string;
   created_at: string;
-  status: "active" | "inactive" | "suspended";
+  status?: "active" | "inactive" | "suspended" | "unknown" | null;
+}
+
+function normalizeStatus(status: Company["status"]): "active" | "inactive" | "suspended" | "unknown" {
+  if (status === "active" || status === "inactive" || status === "suspended") return status;
+  return "unknown";
+}
+
+function statusLabel(status: "active" | "inactive" | "suspended" | "unknown") {
+  if (status === "unknown") return "Unknown";
+  return status.charAt(0).toUpperCase() + status.slice(1);
 }
 
 export function CompaniesList() {
@@ -91,17 +101,24 @@ export function CompaniesList() {
                 {new Date(company.created_at).toLocaleDateString()}
               </td>
               <td className="px-6 py-4 text-sm">
+                {(() => {
+                  const s = normalizeStatus(company.status);
+                  return (
                 <span
                   className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
-                    company.status === "active"
+                    s === "active"
                       ? "bg-green-100 text-green-800"
-                      : company.status === "inactive"
+                      : s === "inactive"
                         ? "bg-zinc-100 text-zinc-800"
-                        : "bg-red-100 text-red-800"
+                        : s === "suspended"
+                          ? "bg-red-100 text-red-800"
+                          : "bg-zinc-100 text-zinc-700"
                   }`}
                 >
-                  {company.status.charAt(0).toUpperCase() + company.status.slice(1)}
+                  {statusLabel(s)}
                 </span>
+                  );
+                })()}
               </td>
             </tr>
           ))}
@@ -122,14 +139,16 @@ export function CompaniesList() {
               </div>
               <span
                 className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-                  company.status === "active"
+                  normalizeStatus(company.status) === "active"
                     ? "bg-green-100 text-green-800"
-                    : company.status === "inactive"
+                    : normalizeStatus(company.status) === "inactive"
                       ? "bg-zinc-100 text-zinc-800"
-                      : "bg-red-100 text-red-800"
+                      : normalizeStatus(company.status) === "suspended"
+                        ? "bg-red-100 text-red-800"
+                        : "bg-zinc-100 text-zinc-700"
                 }`}
               >
-                {company.status.charAt(0).toUpperCase() + company.status.slice(1)}
+                {statusLabel(normalizeStatus(company.status))}
               </span>
             </div>
 

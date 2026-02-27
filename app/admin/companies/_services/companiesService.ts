@@ -1,4 +1,55 @@
-import { Company } from "../_components/CompaniesList";
+import type { Company } from "../_components/CompaniesList";
+
+function normalizeCompany(input: unknown): Company | null {
+  if (!input || typeof input !== "object") return null;
+  const maybeWrapper = input as Record<string, unknown>;
+  const c =
+    maybeWrapper.company && typeof maybeWrapper.company === "object"
+      ? (maybeWrapper.company as Record<string, unknown>)
+      : maybeWrapper;
+
+  const id = (c.id ?? c.company_id) as string | undefined;
+  const name = (c.name ?? c.company_name) as string | undefined;
+  if (!id || !name) return null;
+
+  const company_code =
+    (c.company_code ?? c.code ?? c.companyCode ?? c.companyCode) as string | undefined;
+  const phone = (c.phone ?? c.company_phone ?? "") as string;
+  const email = (c.email ?? c.company_email ?? "") as string;
+  const created_at =
+    (c.created_at ?? c.created ?? c.createdAt ?? new Date().toISOString()) as string;
+  const status = (c.status ?? c.state ?? c.company_status ?? "unknown") as Company["status"];
+
+  return {
+    id,
+    name,
+    company_code: company_code || "",
+    phone: phone || "",
+    email: email || "",
+    created_at: created_at || new Date().toISOString(),
+    status,
+  };
+}
+
+async function safeReadError(res: Response) {
+  try {
+    const text = await res.text();
+    if (!text) return null;
+    try {
+      const parsed: unknown = JSON.parse(text);
+      if (parsed && typeof parsed === "object") {
+        const obj = parsed as Record<string, unknown>;
+        if ("messages" in obj) return JSON.stringify(obj.messages);
+        if ("error" in obj) return String(obj.error);
+      }
+      return text;
+    } catch {
+      return text;
+    }
+  } catch {
+    return null;
+  }
+}
 
 export async function getCompanies(): Promise<Company[]> {
   try {
@@ -15,25 +66,28 @@ export async function getCompanies(): Promise<Company[]> {
     });
 
     if (!response.ok) {
-      console.error("API response error:", response.status);
-      return [];
+      const message = await safeReadError(response);
+      throw new Error(message || `API error: ${response.status}`);
     }
 
     const data = await response.json();
     
     // Ensure we always return an array
-    let companies: Company[] = [];
+    let companies: unknown[] = [];
     
     if (Array.isArray(data)) {
       companies = data;
-    } else if (data && Array.isArray(data.data)) {
-      companies = data.data;
     } else if (data && typeof data === "object") {
-      // If it's an object with companies/items property
-      companies = (data.companies || data.items || data.results) as Company[];
+      const obj = data as Record<string, unknown>;
+      if (Array.isArray(obj.data)) companies = obj.data;
+      else if (Array.isArray(obj.companies)) companies = obj.companies;
+      else if (Array.isArray(obj.items)) companies = obj.items;
+      else if (Array.isArray(obj.results)) companies = obj.results;
     }
-    
-    return Array.isArray(companies) ? companies : [];
+
+    return companies
+      .map(normalizeCompany)
+      .filter((c): c is Company => Boolean(c));
   } catch (error) {
     console.error("Error fetching companies:", error);
     return [];

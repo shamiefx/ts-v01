@@ -2,10 +2,24 @@
 
 This guide explains how to use the **Company** endpoints for your CodeIgniter 4 REST API.
 
-All endpoints below are under:
+---
 
-- Base path: `/api/v1`
-- Auth: **JWT Bearer token required** (protected by `jwtauth` filter)
+## Important: API Token Required
+
+All `/api/v1/companies` endpoints require the `X-API-Token` header in every request, in addition to the JWT Bearer token.
+
+Example:
+```
+GET /api/v1/companies
+Headers:
+  X-API-Token: <your_api_token>
+  Authorization: Bearer <access_token>
+  Content-Type: application/json
+```
+
+If the token is missing or invalid, you will get **401 Unauthorized**.
+
+---
 
 ---
 
@@ -54,7 +68,37 @@ Notes:
 
 ---
 
-## 2) Create a new company (creator becomes owner)
+## 1.5) Fetch single company by ID
+
+**Endpoint:**
+```
+GET /api/v1/companies/{company_id}
+```
+
+**Authorization:**
+- User must be part of this company (have any role: `owner`, `manager`, or `employee` in `company_users`)
+- Returns 403 Forbidden if user doesn't have access
+
+**Response (200 OK):**
+
+```json
+{
+  "company": {
+    "id": "<uuid>",
+    "name": "Acme Inc",
+    "address": "...",
+    "phone": "...",
+    "email": "acme@example.com",
+    "company_code": "A001",
+    "created_at": "2026-02-23 10:00:00",
+    "updated_at": "2026-02-23 10:00:00"
+  }
+}
+```
+
+Returns 404 if company not found.
+
+---
 
 **Endpoint:**
 ```
@@ -100,6 +144,10 @@ PUT   /api/v1/companies/{company_id}
 PATCH /api/v1/companies/{company_id}
 ```
 
+**Authorization:**
+- User must be an `owner` **or** `manager` of this company (checked via `company_users` table)
+- Returns 403 Forbidden if user doesn't have permission
+
 **Allowed fields:**
 - `name`
 - `address`
@@ -140,6 +188,10 @@ If no fields are provided (or nothing changed), you may receive:
 ```
 DELETE /api/v1/companies/{company_id}
 ```
+
+**Authorization:**
+- User must be the `owner` of this company (checked via `company_users` table)
+- Returns 403 Forbidden if user is not the owner
 
 **Response (200 OK):**
 

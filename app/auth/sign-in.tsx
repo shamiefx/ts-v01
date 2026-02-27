@@ -20,22 +20,29 @@ export default function SignIn() {
       setLoading(true);
       const data = await apiFetch<{
         access_token?: string;
+        token?: string;
         refresh_token?: string;
         user?: { user_id: string; email: string };
       }>(
         '/api/auth/login',
         {
           method: 'POST',
-          body: JSON.stringify({ email, password }),
+          body: JSON.stringify({ email, password, is_web: true }),
         }
       );
-      if (data?.access_token) {
-        localStorage.setItem('auth_token', data.access_token);
+
+      const accessToken = data?.access_token || data?.token;
+      if (!accessToken) {
+        throw new Error('Signin failed: No access token returned');
+      }
+
+      localStorage.setItem('auth_token', accessToken);
         if (data.refresh_token) {
           localStorage.setItem('refresh_token', data.refresh_token);
         }
-        await setAuthCookie(data.access_token);
-      }
+
+      await setAuthCookie(accessToken);
+
       setSuccess('Signed in successfully. Redirecting...');
       router.push('/admin');
     } catch (err) {
