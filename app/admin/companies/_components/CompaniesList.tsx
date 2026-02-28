@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import { getCompanies } from "@/app/admin/companies/_services/companiesService";
 
 export interface Company {
@@ -9,6 +10,7 @@ export interface Company {
   company_code: string;
   phone: string;
   email: string;
+  address?: string;
   created_at: string;
   status?: "active" | "inactive" | "suspended" | "unknown" | null;
 }
@@ -69,10 +71,10 @@ export function CompaniesList() {
         <thead>
           <tr className="border-b border-zinc-200 bg-zinc-50">
             <th className="px-6 py-3 text-left text-xs font-semibold uppercase text-zinc-700">
-              Company Name
+              Code
             </th>
             <th className="px-6 py-3 text-left text-xs font-semibold uppercase text-zinc-700">
-              Code
+              Company Name
             </th>
             <th className="px-6 py-3 text-left text-xs font-semibold uppercase text-zinc-700">
               Phone
@@ -86,15 +88,18 @@ export function CompaniesList() {
             <th className="px-6 py-3 text-left text-xs font-semibold uppercase text-zinc-700">
               Status
             </th>
+            <th className="px-6 py-3 text-left text-xs font-semibold uppercase text-zinc-700">
+              Actions
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-zinc-200">
           {companies.map((company) => (
             <tr key={company.id} className="hover:bg-zinc-50 transition-colors">
+              <td className="px-6 py-4 text-sm text-zinc-700">{company.company_code}</td>
               <td className="px-6 py-4 text-sm font-medium text-zinc-900">
                 {company.name}
               </td>
-              <td className="px-6 py-4 text-sm text-zinc-700">{company.company_code}</td>
               <td className="px-6 py-4 text-sm text-zinc-700">{company.phone}</td>
               <td className="px-6 py-4 text-sm text-zinc-700">{company.email}</td>
               <td className="px-6 py-4 text-sm text-zinc-700">
@@ -119,6 +124,14 @@ export function CompaniesList() {
                 </span>
                   );
                 })()}
+              </td>
+              <td className="px-6 py-4 text-sm">
+                <Link
+                  href={`/admin/companies/${company.id}`}
+                  className="rounded-md bg-teal-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-teal-700"
+                >
+                  Edit
+                </Link>
               </td>
             </tr>
           ))}
@@ -167,6 +180,14 @@ export function CompaniesList() {
                   {new Date(company.created_at).toLocaleDateString()}
                 </span>
               </p>
+              <div className="pt-2">
+                <Link
+                  href={`/admin/companies/${company.id}`}
+                  className="inline-block rounded-md bg-teal-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-teal-700"
+                >
+                  Edit
+                </Link>
+              </div>
             </div>
           </div>
         ))}
