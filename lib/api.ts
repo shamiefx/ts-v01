@@ -69,31 +69,55 @@ async function refreshAccessToken(): Promise<string | null> {
   if (!isBrowser()) return null;
 
   const refreshToken = getRefreshToken();
+  if (!refreshToken) {
+    console.warn("No refresh token available");
+    return null;
+  }
 
-  const res = await fetch("/api/auth/refresh", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(refreshToken ? { refresh_token: refreshToken } : {}),
-    credentials: "include",
-  });
+  try {
+    console.log("Attempting to refresh access token...");
+    const res = await fetch("/api/auth/refresh", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+      credentials: "include",
+    });
 
-  if (!res.ok) return null;
+    if (!res.ok) {
+      console.error("Token refresh failed with status:", res.status);
+      // Clear tokens and redirect to login on refresh failure
+      clearTokens();
+      if (typeof window !== "undefined") {
+        window.location.href = "/auth/sign-in";
+      }
+      return null;
+    }
 
-  const data = (await safeReadJson(res)) as
-    | null
-    | {
-        access_token?: string;
-        token?: string;
-        refresh_token?: string;
-      };
+    const data = (await safeReadJson(res)) as
+      | null
+      | {
+          access_token?: string;
+          token?: string;
+          refresh_token?: string;
+        };
 
-  const access = data?.access_token || data?.token;
-  if (!access) return null;
+    const access = data?.access_token || data?.token;
+    if (!access) {
+      console.error("No access token in refresh response");
+      clearTokens();
+      return null;
+    }
 
-  setAccessToken(access);
-  if (data?.refresh_token) setRefreshToken(data.refresh_token);
+    console.log("Token refreshed successfully");
+    setAccessToken(access);
+    if (data?.refresh_token) setRefreshToken(data.refresh_token);
 
-  return access;
+    return access;
+  } catch (error) {
+    console.error("Token refresh error:", error);
+    clearTokens();
+    return null;
+  }
 }
 
 export async function apiFetch<T = unknown>(path: string, options: RequestInit = {}) {
@@ -149,11 +173,13 @@ export async function apiFetch<T = unknown>(path: string, options: RequestInit =
     path.startsWith("/api/auth/logout");
 
   if (isBrowser() && !noRefresh && !isAuthRoute && res.status === 401) {
+    console.log("Received 401, attempting token refresh...");
     const refreshed = await refreshAccessToken();
     if (refreshed) {
+      console.log("Token refreshed, retrying original request...");
       res = await doFetch(refreshed);
     } else {
-      clearTokens();
+      console.warn("Token refresh failed, session expired");
       throw new Error("Session expired. Please sign in again.");
     }
   }

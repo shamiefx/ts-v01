@@ -70,7 +70,7 @@ export function getStoredTokens(): StoredTokens {
 export function setAuthCookie(token: string) {
   if (!isBrowser()) return;
   const secure = window.location.protocol === "https:";
-  const maxAge = 60 * 60 * 24; // 1 day
+  const maxAge = 60 * 60 * 24 * 7; // 7 days (match token expiry)
   const parts = [
     `${ACCESS_TOKEN_KEY}=${encodeURIComponent(token)}`,
     "Path=/",
