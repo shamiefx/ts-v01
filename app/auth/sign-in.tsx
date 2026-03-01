@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiFetch } from '@/lib/api';
-import { setAuthCookie } from '@/app/actions/auth';
+import { setAccessToken, setRefreshToken } from '@/lib/authClient';
 
 export default function SignIn() {
   const router = useRouter();
@@ -36,12 +36,10 @@ export default function SignIn() {
         throw new Error('Signin failed: No access token returned');
       }
 
-      localStorage.setItem('auth_token', accessToken);
-        if (data.refresh_token) {
-          localStorage.setItem('refresh_token', data.refresh_token);
-        }
-
-      await setAuthCookie(accessToken);
+      setAccessToken(accessToken);
+      if (data.refresh_token) {
+        setRefreshToken(data.refresh_token);
+      }
 
       setSuccess('Signed in successfully. Redirecting...');
       router.push('/admin');

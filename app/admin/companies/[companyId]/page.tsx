@@ -99,18 +99,29 @@ export default function CompanyDetailPage() {
       return;
     }
 
+    const normalizedName = form.name.trim().toUpperCase();
+    const normalizedAddress = form.address.trim().toUpperCase();
+    const normalizedEmail = form.email.trim().toLowerCase();
+
     const payload: UpdateCompanyData = {
-      name: form.name.trim(),
-      email: form.email.trim(),
+      name: normalizedName,
+      email: normalizedEmail,
       phone: form.phone.trim() || undefined,
-      address: form.address.trim() || undefined,
+      address: normalizedAddress || undefined,
       company_code: form.company_code.trim() || undefined,
     };
 
     try {
       setSaving(true);
       await updateCompany(companyId, payload);
-      setInitialForm(form);
+      const normalizedForm: CompanyForm = {
+        ...form,
+        name: normalizedName,
+        address: normalizedAddress,
+        email: normalizedEmail,
+      };
+      setForm(normalizedForm);
+      setInitialForm(normalizedForm);
       setEditMode(false);
       setSuccess("Company updated successfully.");
     } catch (err) {
@@ -175,7 +186,10 @@ export default function CompanyDetailPage() {
                 <input
                   value={form.name}
                   onChange={(e) =>
-                    setForm((prev) => ({ ...prev, name: e.target.value }))
+                    setForm((prev) => ({
+                      ...prev,
+                      name: e.target.value.toUpperCase(),
+                    }))
                   }
                   className="w-full rounded-md border px-3 py-2 text-sm"
                   placeholder="Company name"
@@ -194,7 +208,10 @@ export default function CompanyDetailPage() {
                   type="email"
                   value={form.email}
                   onChange={(e) =>
-                    setForm((prev) => ({ ...prev, email: e.target.value }))
+                    setForm((prev) => ({
+                      ...prev,
+                      email: e.target.value.toLowerCase(),
+                    }))
                   }
                   className="w-full rounded-md border px-3 py-2 text-sm"
                   placeholder="company@example.com"

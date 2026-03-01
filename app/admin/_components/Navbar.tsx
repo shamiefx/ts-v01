@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
+import { clearTokens } from "@/lib/authClient";
 
 type NavbarProps = {
   onMenuClickAction: () => void;
@@ -11,7 +12,7 @@ export default function Navbar({ onMenuClickAction }: NavbarProps) {
   const router = useRouter();
 
   const handleLogout = async () => {
-    localStorage.removeItem("auth_token");
+    clearTokens();
     await fetch("/api/auth/logout", { method: "POST" });
     router.push("/auth?view=sign-in");
   };

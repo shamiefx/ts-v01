@@ -65,13 +65,14 @@ function withAuthHeader(headers: Record<string, string>, token: string | null) {
   return { ...headers, Authorization: `Bearer ${token}` };
 }
 
+let refreshInFlight: Promise<string | null> | null = null;
+
 async function refreshAccessToken(): Promise<string | null> {
   if (!isBrowser()) return null;
 
   const refreshToken = getRefreshToken();
   if (!refreshToken) {
-    console.warn("No refresh token available");
-    return null;
+    console.warn("No local refresh token found, attempting cookie-based refresh...");
   }
 
   try {
@@ -79,7 +80,9 @@ async function refreshAccessToken(): Promise<string | null> {
     const res = await fetch("/api/auth/refresh", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refresh_token: refreshToken }),
+      body: JSON.stringify(
+        refreshToken ? { refresh_token: refreshToken } : {}
+      ),
       credentials: "include",
     });
 
@@ -118,6 +121,20 @@ async function refreshAccessToken(): Promise<string | null> {
     clearTokens();
     return null;
   }
+}
+
+async function getFreshAccessTokenSingleFlight(): Promise<string | null> {
+  if (!isBrowser()) return null;
+
+  if (!refreshInFlight) {
+    refreshInFlight = refreshAccessToken().finally(() => {
+      refreshInFlight = null;
+    });
+  } else {
+    console.log("Refresh already in progress, waiting for existing refresh...");
+  }
+
+  return refreshInFlight;
 }
 
 export async function apiFetch<T = unknown>(path: string, options: RequestInit = {}) {
@@ -174,7 +191,7 @@ export async function apiFetch<T = unknown>(path: string, options: RequestInit =
 
   if (isBrowser() && !noRefresh && !isAuthRoute && res.status === 401) {
     console.log("Received 401, attempting token refresh...");
-    const refreshed = await refreshAccessToken();
+    const refreshed = await getFreshAccessTokenSingleFlight();
     if (refreshed) {
       console.log("Token refreshed, retrying original request...");
       res = await doFetch(refreshed);
