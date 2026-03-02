@@ -65,6 +65,12 @@ function getProfileImageUrl(profile_image: string | null) {
   return `/uploads/${profile_image.replace(/^\//, "")}`;
 }
 
+function normalizeGenderValue(value: string | null | undefined): "" | "male" | "female" {
+  const v = (value ?? "").trim().toLowerCase();
+  if (v === "male" || v === "female") return v;
+  return "";
+}
+
 export default function ProfilePage() {
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [localPreview, setLocalPreview] = useState<string | null>(null);
@@ -106,7 +112,7 @@ export default function ProfilePage() {
         setForm({
           full_name: p.full_name ?? "",
           dob: p.dob ?? "",
-          gender: p.gender ?? "",
+          gender: normalizeGenderValue(p.gender),
           bio: p.bio ?? "",
           address: p.address ?? "",
         });
@@ -245,6 +251,14 @@ export default function ProfilePage() {
       }
 
       setProfile((prev) => (prev ? { ...prev, profile_image: newPath } : prev));
+      window.dispatchEvent(
+        new CustomEvent("profile-updated", {
+          detail: {
+            profile_image: newPath,
+            email: profile?.email ?? null,
+          },
+        }),
+      );
       setMessageSuccess("Profile image updated.");
       setLocalPreview(null);
       e.target.value = "";
@@ -289,7 +303,7 @@ export default function ProfilePage() {
       setForm({
         full_name: p.full_name ?? "",
         dob: p.dob ?? "",
-        gender: p.gender ?? "",
+        gender: normalizeGenderValue(p.gender),
         bio: p.bio ?? "",
         address: p.address ?? "",
       });
@@ -533,12 +547,15 @@ export default function ProfilePage() {
                   <div className="text-sm font-medium text-zinc-700">Gender</div>
                   <div className="text-sm text-zinc-900 capitalize">
                     {editMode ? (
-                      <input
+                      <select
                         value={form.gender}
                         onChange={(e) => setForm((p) => ({ ...p, gender: e.target.value }))}
                         className="w-full rounded-md border px-3 py-2 text-sm"
-                        placeholder="e.g. female"
-                      />
+                      >
+                        <option value="">Select gender</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                      </select>
                     ) : (
                       user.gender || "-"
                     )}
@@ -604,7 +621,7 @@ export default function ProfilePage() {
                           setForm({
                             full_name: user.full_name ?? "",
                             dob: user.dob ?? "",
-                            gender: user.gender ?? "",
+                            gender: normalizeGenderValue(user.gender),
                             bio: user.bio ?? "",
                             address: user.address ?? "",
                           });
