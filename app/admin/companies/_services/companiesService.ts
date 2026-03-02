@@ -4,6 +4,10 @@ import { apiFetch } from "@/lib/api";
 function normalizeCompany(input: unknown): Company | null {
   if (!input || typeof input !== "object") return null;
   const maybeWrapper = input as Record<string, unknown>;
+  const subscriptionObj =
+    maybeWrapper.subscription && typeof maybeWrapper.subscription === "object"
+      ? (maybeWrapper.subscription as Record<string, unknown>)
+      : null;
   const c =
     maybeWrapper.company && typeof maybeWrapper.company === "object"
       ? (maybeWrapper.company as Record<string, unknown>)
@@ -21,6 +25,25 @@ function normalizeCompany(input: unknown): Company | null {
   const created_at =
     (c.created_at ?? c.created ?? c.createdAt ?? new Date().toISOString()) as string;
   const status = (c.status ?? c.state ?? c.company_status ?? "unknown") as Company["status"];
+  const user_type =
+    (maybeWrapper.user_type ?? maybeWrapper.userType ?? maybeWrapper.role) as
+      | Company["user_type"]
+      | undefined;
+
+  const subscription = subscriptionObj
+    ? {
+        id: (subscriptionObj.id ?? subscriptionObj.subscription_id) as string | undefined,
+        plan_id: (subscriptionObj.plan_id ?? subscriptionObj.planId) as string | undefined,
+        plan_name: (subscriptionObj.plan_name ?? subscriptionObj.planName) as string | undefined,
+        billing_cycle: (subscriptionObj.billing_cycle ??
+          subscriptionObj.billingCycle) as string | undefined,
+        amount: (subscriptionObj.amount ?? subscriptionObj.price) as string | number | undefined,
+        currency: (subscriptionObj.currency ?? subscriptionObj.currency_code) as string | undefined,
+        start_date: (subscriptionObj.start_date ?? subscriptionObj.startDate) as string | undefined,
+        end_date: (subscriptionObj.end_date ?? subscriptionObj.endDate) as string | undefined,
+        status: (subscriptionObj.status ?? "unknown") as string | undefined,
+      }
+    : undefined;
 
   return {
     id,
@@ -31,6 +54,8 @@ function normalizeCompany(input: unknown): Company | null {
     address: address || "",
     created_at: created_at || new Date().toISOString(),
     status,
+    user_type,
+    subscription,
   };
 }
 
@@ -74,6 +99,16 @@ export interface CreateCompanyData {
   email: string;
   phone?: string;
   address?: string;
+  plan_id: string;
+  billing_cycle?: "monthly" | "yearly";
+  amount?: string;
+}
+
+export interface PlanOption {
+  id: string;
+  name: string;
+  monthlyPrice: number;
+  currency?: string;
 }
 
 export interface UpdateCompanyData {
@@ -85,10 +120,14 @@ export interface UpdateCompanyData {
 }
 
 export async function createCompany(data: CreateCompanyData): Promise<{ company_id: string; message: string }> {
-  // Workaround: Backend expects company_code field (even if empty) due to auto-generation bug
   const requestBody = {
-    ...data,
-    company_code: "", // Backend will auto-generate this
+    name: data.name,
+    email: data.email,
+    phone: data.phone,
+    address: data.address,
+    plan_id: data.plan_id,
+    billing_cycle: data.billing_cycle ?? "monthly",
+    amount: data.amount,
   };
 
   const response = await apiFetch<{ message: string; company_id: string }>("/api/companies", {
@@ -97,6 +136,58 @@ export async function createCompany(data: CreateCompanyData): Promise<{ company_
   });
 
   return response;
+}
+
+function toNumber(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
+    const n = Number(value);
+    if (Number.isFinite(n)) return n;
+  }
+  return 0;
+}
+
+function normalizePlan(input: unknown): PlanOption | null {
+  if (!input || typeof input !== "object") return null;
+  const p = input as Record<string, unknown>;
+
+  const id = (p.id ?? p.plan_id ?? p.uuid) as string | undefined;
+  if (!id) return null;
+
+  const name =
+    ((p.name ?? p.plan_name ?? p.title) as string | undefined)?.trim() || "Unnamed Plan";
+
+  const monthlyPrice = toNumber(
+    p.monthly_price ?? p.monthlyPrice ?? p.price_monthly ?? p.price ?? 0,
+  );
+
+  const currency =
+    ((p.currency ?? p.currency_code ?? p.curr) as string | undefined)?.trim() || undefined;
+
+  return { id, name, monthlyPrice, currency };
+}
+
+export async function getPlans(): Promise<PlanOption[]> {
+  const data = await apiFetch<unknown>("/api/plans", {
+    method: "GET",
+    cache: "no-store",
+  });
+
+  let plansRaw: unknown[] = [];
+
+  if (Array.isArray(data)) {
+    plansRaw = data;
+  } else if (data && typeof data === "object") {
+    const obj = data as Record<string, unknown>;
+    if (Array.isArray(obj.plans)) plansRaw = obj.plans;
+    else if (Array.isArray(obj.data)) plansRaw = obj.data;
+    else if (Array.isArray(obj.items)) plansRaw = obj.items;
+    else if (obj.plan && typeof obj.plan === "object") plansRaw = [obj.plan];
+  }
+
+  return plansRaw
+    .map(normalizePlan)
+    .filter((p): p is PlanOption => Boolean(p));
 }
 
 export async function updateCompany(

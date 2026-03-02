@@ -13,6 +13,18 @@ export interface Company {
   address?: string;
   created_at: string;
   status?: "active" | "inactive" | "suspended" | "unknown" | null;
+  user_type?: "owner" | "manager" | "employee" | string;
+  subscription?: {
+    id?: string;
+    plan_id?: string;
+    plan_name?: string;
+    billing_cycle?: "monthly" | "yearly" | string;
+    amount?: string | number;
+    currency?: string;
+    start_date?: string;
+    end_date?: string;
+    status?: string;
+  };
 }
 
 function normalizeStatus(status: Company["status"]): "active" | "inactive" | "suspended" | "unknown" {
@@ -23,6 +35,38 @@ function normalizeStatus(status: Company["status"]): "active" | "inactive" | "su
 function statusLabel(status: "active" | "inactive" | "suspended" | "unknown") {
   if (status === "unknown") return "Unknown";
   return status.charAt(0).toUpperCase() + status.slice(1);
+}
+
+function roleLabel(role?: Company["user_type"]) {
+  if (!role) return "-";
+  return role.charAt(0).toUpperCase() + role.slice(1);
+}
+
+function billingLabel(cycle?: string) {
+  if (!cycle) return "-";
+  return cycle.charAt(0).toUpperCase() + cycle.slice(1);
+}
+
+function formatAmount(amount?: string | number, currency?: string) {
+  const n = Number(amount);
+  if (!Number.isFinite(n)) return "-";
+  const curr = currency || "MYR";
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: curr,
+      maximumFractionDigits: 2,
+    }).format(n);
+  } catch {
+    return `${n.toFixed(2)} ${curr}`;
+  }
+}
+
+function formatDate(date?: string) {
+  if (!date) return "-";
+  const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return date;
+  return d.toLocaleDateString();
 }
 
 export function CompaniesList() {
@@ -77,13 +121,19 @@ export function CompaniesList() {
               Company Name
             </th>
             <th className="px-6 py-3 text-left text-xs font-semibold uppercase text-zinc-700">
-              Phone
+              Contact
             </th>
             <th className="px-6 py-3 text-left text-xs font-semibold uppercase text-zinc-700">
-              Email
+              Role
             </th>
             <th className="px-6 py-3 text-left text-xs font-semibold uppercase text-zinc-700">
-              Created
+              Plan
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-semibold uppercase text-zinc-700">
+              Billing
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-semibold uppercase text-zinc-700">
+              Renewal
             </th>
             <th className="px-6 py-3 text-left text-xs font-semibold uppercase text-zinc-700">
               Status
@@ -100,10 +150,26 @@ export function CompaniesList() {
               <td className="px-6 py-4 text-sm font-medium text-zinc-900">
                 {company.name}
               </td>
-              <td className="px-6 py-4 text-sm text-zinc-700">{company.phone}</td>
-              <td className="px-6 py-4 text-sm text-zinc-700">{company.email}</td>
               <td className="px-6 py-4 text-sm text-zinc-700">
-                {new Date(company.created_at).toLocaleDateString()}
+                <div>{company.phone || "-"}</div>
+                <div className="text-xs text-zinc-500">{company.email || "-"}</div>
+              </td>
+              <td className="px-6 py-4 text-sm text-zinc-700">
+                <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">
+                  {roleLabel(company.user_type)}
+                </span>
+              </td>
+              <td className="px-6 py-4 text-sm text-zinc-700">
+                {company.subscription?.plan_name || "-"}
+              </td>
+              <td className="px-6 py-4 text-sm text-zinc-700">
+                <div>{billingLabel(company.subscription?.billing_cycle)}</div>
+                <div className="text-xs text-zinc-500">
+                  {formatAmount(company.subscription?.amount, company.subscription?.currency)}
+                </div>
+              </td>
+              <td className="px-6 py-4 text-sm text-zinc-700">
+                {formatDate(company.subscription?.end_date)}
               </td>
               <td className="px-6 py-4 text-sm">
                 {(() => {
@@ -130,7 +196,7 @@ export function CompaniesList() {
                   href={`/admin/companies/${company.id}`}
                   className="rounded-md bg-teal-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-teal-700"
                 >
-                  Edit
+                  Detail
                 </Link>
               </td>
             </tr>
@@ -167,18 +233,28 @@ export function CompaniesList() {
 
             <div className="space-y-1 text-sm">
               <p>
-                <span className="font-medium text-zinc-700">Phone:</span>{" "}
-                <span className="text-zinc-600">{company.phone}</span>
+                <span className="font-medium text-zinc-700">Role:</span>{" "}
+                <span className="text-zinc-600">{roleLabel(company.user_type)}</span>
               </p>
               <p>
                 <span className="font-medium text-zinc-700">Email:</span>{" "}
                 <span className="text-zinc-600">{company.email}</span>
               </p>
               <p>
-                <span className="font-medium text-zinc-700">Created:</span>{" "}
+                <span className="font-medium text-zinc-700">Plan:</span>{" "}
                 <span className="text-zinc-600">
-                  {new Date(company.created_at).toLocaleDateString()}
+                  {company.subscription?.plan_name || "-"}
                 </span>
+              </p>
+              <p>
+                <span className="font-medium text-zinc-700">Billing:</span>{" "}
+                <span className="text-zinc-600">
+                  {billingLabel(company.subscription?.billing_cycle)} • {formatAmount(company.subscription?.amount, company.subscription?.currency)}
+                </span>
+              </p>
+              <p>
+                <span className="font-medium text-zinc-700">Renewal:</span>{" "}
+                <span className="text-zinc-600">{formatDate(company.subscription?.end_date)}</span>
               </p>
               <div className="pt-2">
                 <Link
