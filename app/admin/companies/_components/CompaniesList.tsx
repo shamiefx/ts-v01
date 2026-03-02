@@ -37,10 +37,10 @@ function statusLabel(status: "active" | "inactive" | "suspended" | "unknown") {
   return status.charAt(0).toUpperCase() + status.slice(1);
 }
 
-function roleLabel(role?: Company["user_type"]) {
-  if (!role) return "-";
-  return role.charAt(0).toUpperCase() + role.slice(1);
-}
+// function roleLabel(role?: Company["user_type"]) {
+//   if (!role) return "-";
+//   return role.charAt(0).toUpperCase() + role.slice(1);
+// }
 
 function billingLabel(cycle?: string) {
   if (!cycle) return "-";
@@ -123,9 +123,9 @@ export function CompaniesList() {
             <th className="px-6 py-3 text-left text-xs font-semibold uppercase text-zinc-700">
               Contact
             </th>
-            <th className="px-6 py-3 text-left text-xs font-semibold uppercase text-zinc-700">
+            {/* <th className="px-6 py-3 text-left text-xs font-semibold uppercase text-zinc-700">
               Role
-            </th>
+            </th> */}
             <th className="px-6 py-3 text-left text-xs font-semibold uppercase text-zinc-700">
               Plan
             </th>
@@ -154,11 +154,11 @@ export function CompaniesList() {
                 <div>{company.phone || "-"}</div>
                 <div className="text-xs text-zinc-500">{company.email || "-"}</div>
               </td>
-              <td className="px-6 py-4 text-sm text-zinc-700">
+              {/* <td className="px-6 py-4 text-sm text-zinc-700">
                 <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">
                   {roleLabel(company.user_type)}
                 </span>
-              </td>
+              </td> */}
               <td className="px-6 py-4 text-sm text-zinc-700">
                 {company.subscription?.plan_name || "-"}
               </td>
@@ -232,10 +232,10 @@ export function CompaniesList() {
             </div>
 
             <div className="space-y-1 text-sm">
-              <p>
+              {/* <p>
                 <span className="font-medium text-zinc-700">Role:</span>{" "}
                 <span className="text-zinc-600">{roleLabel(company.user_type)}</span>
-              </p>
+              </p> */}
               <p>
                 <span className="font-medium text-zinc-700">Email:</span>{" "}
                 <span className="text-zinc-600">{company.email}</span>

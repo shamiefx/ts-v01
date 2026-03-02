@@ -222,7 +222,7 @@ export default function CompanyDetailPage() {
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-zinc-900">Company Detail</h1>
         <p className="mt-2 text-sm text-zinc-600">
-          View and edit company information
+          View and edit company and subscription information
         </p>
       </div>
 
@@ -233,7 +233,9 @@ export default function CompanyDetailPage() {
           ) : null}
           {error ? <p className="mb-4 text-sm text-red-600">{error}</p> : null}
 
-          <div className="grid grid-cols-1 gap-4">
+          <h2 className="text-lg font-semibold text-zinc-900">Company</h2>
+          <p className="mt-1 text-xs text-zinc-500">Company detail</p>
+          <div className="mt-4 grid grid-cols-1 gap-4">
             <div className="grid grid-cols-[140px_1fr] gap-4 border-b pb-3">
               <div className="text-sm font-medium text-zinc-700">Company Code</div>
               <div className="text-sm text-zinc-900">{form.company_code || "-"}</div>
