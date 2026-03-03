@@ -1,6 +1,8 @@
 import type { Company } from "../_components/CompaniesList";
 import { apiFetch } from "@/lib/api";
 
+export type { Company };
+
 function normalizeCompany(input: unknown): Company | null {
   if (!input || typeof input !== "object") return null;
   const maybeWrapper = input as Record<string, unknown>;
@@ -104,8 +106,11 @@ export interface CreateCompanyData {
 export interface PlanOption {
   id: string;
   name: string;
+  description?: string;
   monthlyPrice: number;
   currency?: string;
+  modules?: string[];
+  status?: string;
 }
 
 export interface UpdateCompanyData {
@@ -151,6 +156,9 @@ function normalizePlan(input: unknown): PlanOption | null {
   const name =
     ((p.name ?? p.plan_name ?? p.title) as string | undefined)?.trim() || "Unnamed Plan";
 
+  const description =
+    ((p.description ?? p.desc ?? p.plan_description) as string | undefined)?.trim() || undefined;
+
   const monthlyPrice = toNumber(
     p.monthly_price ?? p.monthlyPrice ?? p.price_monthly ?? p.price ?? 0,
   );
@@ -158,7 +166,23 @@ function normalizePlan(input: unknown): PlanOption | null {
   const currency =
     ((p.currency ?? p.currency_code ?? p.curr) as string | undefined)?.trim() || undefined;
 
-  return { id, name, monthlyPrice, currency };
+  const status =
+    ((p.status ?? p.state ?? p.plan_status) as string | undefined)?.trim() || undefined;
+
+  let modules: string[] | undefined;
+  const modulesRaw = p.modules ?? p.features ?? p.plan_modules;
+  if (typeof modulesRaw === "string") {
+    try {
+      const parsed = JSON.parse(modulesRaw);
+      modules = Array.isArray(parsed) ? parsed.filter((m): m is string => typeof m === "string") : undefined;
+    } catch {
+      modules = undefined;
+    }
+  } else if (Array.isArray(modulesRaw)) {
+    modules = modulesRaw.filter((m): m is string => typeof m === "string");
+  }
+
+  return { id, name, description, monthlyPrice, currency, modules, status };
 }
 
 export async function getPlans(): Promise<PlanOption[]> {
