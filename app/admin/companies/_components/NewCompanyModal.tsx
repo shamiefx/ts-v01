@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
-import { getPlans, type PlanOption } from "../_services/companiesService";
+import React, { useState } from "react";
 
 export interface NewCompanyModalProps {
   isOpen: boolean;
@@ -14,9 +13,6 @@ export interface CompanyFormData {
   email: string;
   phone?: string;
   address?: string;
-  plan_id: string;
-  billing_cycle: "monthly" | "yearly";
-  amount: string;
 }
 
 export function NewCompanyModal({ isOpen, onClose, onSubmit }: NewCompanyModalProps) {
@@ -25,66 +21,9 @@ export function NewCompanyModal({ isOpen, onClose, onSubmit }: NewCompanyModalPr
     email: "",
     phone: "",
     address: "",
-    plan_id: "",
-    billing_cycle: "monthly",
-    amount: "0.00",
   });
-  const [plans, setPlans] = useState<PlanOption[]>([]);
-  const [plansLoading, setPlansLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    let active = true;
-    async function loadPlans() {
-      try {
-        setPlansLoading(true);
-        const list = await getPlans();
-        if (!active) return;
-        setPlans(list);
-        setFormData((prev) => ({
-          ...prev,
-          plan_id: prev.plan_id || list[0]?.id || "",
-        }));
-      } catch (err) {
-        if (!active) return;
-        setError(err instanceof Error ? err.message : "Failed to load plans");
-      } finally {
-        if (active) setPlansLoading(false);
-      }
-    }
-
-    loadPlans();
-
-    return () => {
-      active = false;
-    };
-  }, [isOpen]);
-
-  const selectedPlan = useMemo(
-    () => plans.find((p) => p.id === formData.plan_id) ?? null,
-    [plans, formData.plan_id],
-  );
-
-  const monthlyPrice = selectedPlan?.monthlyPrice ?? 0;
-  const yearlyPriceBeforeDiscount = monthlyPrice * 12;
-  const yearlyDiscountAmount = yearlyPriceBeforeDiscount * 0.1;
-  const yearlyPrice = yearlyPriceBeforeDiscount - yearlyDiscountAmount;
-
-  function formatMoney(value: number, currency?: string) {
-    const curr = currency || "USD";
-    try {
-      return new Intl.NumberFormat(undefined, {
-        style: "currency",
-        currency: curr,
-        maximumFractionDigits: 2,
-      }).format(value);
-    } catch {
-      return `${value.toFixed(2)} ${curr}`;
-    }
-  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -95,39 +34,26 @@ export function NewCompanyModal({ isOpen, onClose, onSubmit }: NewCompanyModalPr
     e.preventDefault();
     setError(null);
 
-    if (!formData.plan_id) {
-      setError("Plan is required.");
+    if (!formData.name.trim()) {
+      setError("Company name is required");
       return;
     }
 
-    if (!selectedPlan) {
-      setError("Selected plan is invalid.");
+    if (!formData.email.trim()) {
+      setError("Email is required");
       return;
     }
-
-    const computedAmountNumber =
-      formData.billing_cycle === "yearly"
-        ? selectedPlan.monthlyPrice * 12 * 0.9
-        : selectedPlan.monthlyPrice;
-
-    const computedAmount = computedAmountNumber.toFixed(2);
 
     setLoading(true);
 
     try {
-      await onSubmit({
-        ...formData,
-        amount: computedAmount,
-      });
+      await onSubmit(formData);
       // Reset form
       setFormData({
         name: "",
         email: "",
         phone: "",
         address: "",
-        plan_id: plans[0]?.id || "",
-        billing_cycle: "monthly",
-        amount: "0.00",
       });
       onClose();
     } catch (err) {
@@ -240,53 +166,6 @@ export function NewCompanyModal({ isOpen, onClose, onSubmit }: NewCompanyModalPr
               className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               placeholder="Enter company address"
             />
-          </div>
-
-          <div>
-            <label htmlFor="plan_id" className="block text-sm font-medium text-zinc-700">
-              Plan <span className="text-red-500">*</span>
-            </label>
-            <select
-              id="plan_id"
-              name="plan_id"
-              required
-              value={formData.plan_id}
-              onChange={handleChange}
-              disabled={plansLoading}
-              className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-zinc-100"
-            >
-              {plans.length === 0 ? (
-                <option value="">{plansLoading ? "Loading plans..." : "No plans available"}</option>
-              ) : null}
-              {plans.map((plan) => (
-                <option key={plan.id} value={plan.id}>
-                  {plan.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="billing_cycle" className="block text-sm font-medium text-zinc-700">
-              Billing Cycle
-            </label>
-            <select
-              id="billing_cycle"
-              name="billing_cycle"
-              value={formData.billing_cycle}
-              onChange={handleChange}
-              className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="monthly">Monthly</option>
-              <option value="yearly">Yearly (10% discount)</option>
-            </select>
-            {selectedPlan ? (
-              <p className="mt-2 text-xs text-zinc-600">
-                {formData.billing_cycle === "yearly"
-                  ? `Yearly: ${formatMoney(yearlyPrice, selectedPlan.currency)} (saved ${formatMoney(yearlyDiscountAmount, selectedPlan.currency)} from ${formatMoney(yearlyPriceBeforeDiscount, selectedPlan.currency)})`
-                  : `Monthly: ${formatMoney(monthlyPrice, selectedPlan.currency)} / month`}
-              </p>
-            ) : null}
           </div>
 
           <div className="flex justify-end gap-3 pt-4">

@@ -154,22 +154,26 @@ export function CompaniesList() {
                 <div>{company.phone || "-"}</div>
                 <div className="text-xs text-zinc-500">{company.email || "-"}</div>
               </td>
-              {/* <td className="px-6 py-4 text-sm text-zinc-700">
-                <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">
-                  {roleLabel(company.user_type)}
-                </span>
-              </td> */}
               <td className="px-6 py-4 text-sm text-zinc-700">
-                {company.subscription?.plan_name || "-"}
+                {company.subscription ? (company.subscription.plan_name || "-") : "Trial Period"}
               </td>
               <td className="px-6 py-4 text-sm text-zinc-700">
-                <div>{billingLabel(company.subscription?.billing_cycle)}</div>
-                <div className="text-xs text-zinc-500">
-                  {formatAmount(company.subscription?.amount, company.subscription?.currency)}
-                </div>
+                {company.subscription ? (
+                  <>
+                    <div>{billingLabel(company.subscription.billing_cycle)}</div>
+                    <div className="text-xs text-zinc-500">
+                      {formatAmount(company.subscription.amount, company.subscription.currency)}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>N.A</div>
+                    <div className="text-xs text-zinc-500">N.A</div>
+                  </>
+                )}
               </td>
               <td className="px-6 py-4 text-sm text-zinc-700">
-                {formatDate(company.subscription?.end_date)}
+                {company.subscription ? formatDate(company.subscription.end_date) : "N.A"}
               </td>
               <td className="px-6 py-4 text-sm">
                 {(() => {
@@ -213,8 +217,8 @@ export function CompaniesList() {
           >
             <div className="flex items-start justify-between">
               <div>
-                <p className="font-semibold text-zinc-900">{company.name}</p>
-                <p className="text-xs text-zinc-600">{company.company_code}</p>
+                <p className="font-semibold text-zinc-900">{company.company_code}</p>
+                <p className="text-xs text-zinc-600">{company.name}</p>
               </div>
               <span
                 className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
@@ -232,10 +236,6 @@ export function CompaniesList() {
             </div>
 
             <div className="space-y-1 text-sm">
-              {/* <p>
-                <span className="font-medium text-zinc-700">Role:</span>{" "}
-                <span className="text-zinc-600">{roleLabel(company.user_type)}</span>
-              </p> */}
               <p>
                 <span className="font-medium text-zinc-700">Email:</span>{" "}
                 <span className="text-zinc-600">{company.email}</span>
@@ -243,18 +243,20 @@ export function CompaniesList() {
               <p>
                 <span className="font-medium text-zinc-700">Plan:</span>{" "}
                 <span className="text-zinc-600">
-                  {company.subscription?.plan_name || "-"}
+                  {company.subscription ? (company.subscription.plan_name || "-") : "Trial Period"}
                 </span>
               </p>
               <p>
                 <span className="font-medium text-zinc-700">Billing:</span>{" "}
                 <span className="text-zinc-600">
-                  {billingLabel(company.subscription?.billing_cycle)} • {formatAmount(company.subscription?.amount, company.subscription?.currency)}
+                  {company.subscription
+                    ? `${billingLabel(company.subscription.billing_cycle)} • ${formatAmount(company.subscription.amount, company.subscription.currency)}`
+                    : "N.A"}
                 </span>
               </p>
               <p>
                 <span className="font-medium text-zinc-700">Renewal:</span>{" "}
-                <span className="text-zinc-600">{formatDate(company.subscription?.end_date)}</span>
+                <span className="text-zinc-600">{company.subscription ? formatDate(company.subscription.end_date) : "N.A"}</span>
               </p>
               <div className="pt-2">
                 <Link

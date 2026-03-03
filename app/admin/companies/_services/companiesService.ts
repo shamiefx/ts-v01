@@ -99,9 +99,6 @@ export interface CreateCompanyData {
   email: string;
   phone?: string;
   address?: string;
-  plan_id: string;
-  billing_cycle?: "monthly" | "yearly";
-  amount?: string;
 }
 
 export interface PlanOption {
@@ -125,9 +122,6 @@ export async function createCompany(data: CreateCompanyData): Promise<{ company_
     email: data.email,
     phone: data.phone,
     address: data.address,
-    plan_id: data.plan_id,
-    billing_cycle: data.billing_cycle ?? "monthly",
-    amount: data.amount,
   };
 
   const response = await apiFetch<{ message: string; company_id: string }>("/api/companies", {
