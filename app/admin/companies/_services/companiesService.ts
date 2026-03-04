@@ -1,5 +1,7 @@
 import type { Company } from "../_components/CompaniesList";
 import { apiFetch } from "@/lib/api";
+import type { CreateSubscriptionData } from "../../plans/_services/subscriptionService";
+import { createSubscription } from "../../plans/_services/subscriptionService";
 
 export type { Company };
 
@@ -101,6 +103,8 @@ export interface CreateCompanyData {
   email: string;
   phone?: string;
   address?: string;
+  plan_id: string;
+  billing_cycle: "monthly" | "yearly";
 }
 
 export interface PlanOption {
@@ -133,6 +137,22 @@ export async function createCompany(data: CreateCompanyData): Promise<{ company_
     method: "POST",
     body: JSON.stringify(requestBody),
   });
+
+  // Create subscription if plan_id is provided
+  if (data.plan_id && response.company_id) {
+    const subscriptionData: CreateSubscriptionData = {
+      company_id: response.company_id,
+      plan_id: data.plan_id,
+      billing_cycle: data.billing_cycle,
+    };
+    
+    try {
+      await createSubscription(subscriptionData);
+    } catch (err) {
+      console.error("Failed to create subscription:", err);
+      // Don't throw - company was created successfully, subscription can be added later
+    }
+  }
 
   return response;
 }

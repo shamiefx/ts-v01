@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
 type Params = {
-  params: { companyId: string };
+  params: Promise<{ companyId: string }>;
 };
 
 async function buildAuth(request: NextRequest) {
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest, { params }: Params) {
     const auth = await buildAuth(request);
     if ("error" in auth) return auth.error;
 
-    const { companyId } = params;
+    const { companyId } = await params;
     const encodedCompanyId = encodeURIComponent(companyId);
     const upstreamUrl = `${auth.apiBaseUrl}/api/v1/companies/${encodedCompanyId}`;
 
@@ -147,7 +147,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
     if ("error" in auth) return auth.error;
 
     const body = await request.json();
-    const { companyId } = params;
+    const { companyId } = await params;
     const encodedCompanyId = encodeURIComponent(companyId);
     const upstreamUrl = `${auth.apiBaseUrl}/api/v1/companies/${encodedCompanyId}`;
 

@@ -402,7 +402,7 @@ export default function CompanyDetailPage() {
               <span className="font-medium text-zinc-900">{formatDate(subscription?.start_date)}</span>
             </div>
             <div className="flex items-start justify-between gap-3 border-b pb-2">
-              <span className="text-zinc-500">Renewal Date</span>
+              <span className="text-zinc-500">Billing Date</span>
               <span className="font-medium text-zinc-900">{formatDate(subscription?.end_date)}</span>
             </div>
             <div className="flex items-start justify-between gap-3">
